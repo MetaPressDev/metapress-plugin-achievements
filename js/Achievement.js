@@ -137,6 +137,11 @@ export default class Achievement {
     update(progress) {
         this.sanityCheck(this._settings)
 
+        // Edge case: Progress given is negative
+        if (progress < 0) {
+            throw new Error('Achievement progress given must be a positive number.')
+        }
+
         // Edge case: Progress given is bigger than highest threshold
         if (progress >= this._settings.thresholds[this._settings.thresholds.length - 1].max) {
             this._level = this._settings.thresholds.length - 1
@@ -144,6 +149,30 @@ export default class Achievement {
             this._overallProgress = this._settings.thresholds[this._level].max
             return
         }
+
+        const newProgress = this._progress + progress
+        if (newProgress >= this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min) {
+
+            // Already at highest level
+            if (this._level + 1 >= this._settings.thresholds.length) {
+                this._progress = this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min
+                this._overallProgress = this._settings.thresholds[this._level].max
+                return
+            }
+
+            // Level up
+            this._level += 1
+            this._progress = Math.max(newProgress - this._settings.thresholds[this._level].min, 0)
+            this._overallProgress = this._settings.thresholds[this._level].min + this._progress
+
+        } else {
+
+            // Stay at current level
+            this._progress = newProgress
+            this._overallProgress = this._settings.thresholds[this._level].min + this._progress
+
+        }
+
     }
 
     /** Prints the achievement data to the console. */
