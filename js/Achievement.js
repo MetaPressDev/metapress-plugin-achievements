@@ -186,6 +186,7 @@ export default class Achievement {
             thresholds: this._settings.thresholds,
             level: this._level,
             progress: this._progress,
+            progressPercent: (this._progress / (this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min)) * 100,
             overallProgress: this._overallProgress,
             current: {
                 name: this._settings.names[this._level],
