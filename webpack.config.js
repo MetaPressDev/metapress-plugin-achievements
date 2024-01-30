@@ -1,6 +1,7 @@
 const webpack = require('webpack')
 const path = require('path')
 const fs = require('fs')
+const Dotenv = require('dotenv-webpack')
 
 /** Webpack config */
 module.exports = function(env, argv) {
@@ -18,7 +19,11 @@ module.exports = function(env, argv) {
         module: {
             rules: []
         },
-        plugins: []
+        plugins: [
+            new Dotenv({
+                path: '.env',
+            }),
+        ]
     }
 
     // Support for transpiling JavaScript

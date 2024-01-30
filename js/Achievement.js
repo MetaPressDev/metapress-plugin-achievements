@@ -5,6 +5,9 @@ import { v4 as uuidv4 } from 'uuid'
  */
 export default class Achievement {
 
+    /** @private Identifier for this achievement */
+    _id = ''
+
     /** @private Level of the current achievement */
     _level = 0
 
@@ -17,12 +20,10 @@ export default class Achievement {
     /** @private Settings applied to this achievement */
     _settings = {}
 
-    /** Identifier for this achievement */
-    id = ''
-
     /**
      * Constructor for a single achievement.
      * @param {object} settings Achievement settings.
+     * @param {string} settings.id Identifier for this achievement.
      * @param {string[]} settings.names Names for each level of the achievement.
      * @param {string[]} settings.descriptions Descriptions for each level of the achievement.
      * @param {{ min: number, max: number }[]} settings.thresholds Minimum and maximum values that denote the range of each level. Each minimum value needs to be higher than the maximum of the previous level.
@@ -33,11 +34,20 @@ export default class Achievement {
         this.sanityCheck(settings)
 
         // Assign values
-        this.id = uuidv4()
+        this._id = settings.id || uuidv4()
         this._settings = settings
         this._level = settings.level || 0
         this._progress = settings.progress || 0
         this._overallProgress = settings.thresholds[this._level].min + this._progress
+    }
+
+    /** Identifier of the achievement */
+    get id() {
+        return this._id
+    }
+
+    set id(id) {
+        throw new Error('Not allowed to set the achievement identifier.')
     }
 
     /** Level of the current achievement */
@@ -65,6 +75,11 @@ export default class Achievement {
 
     set overallProgress(prog) {
         throw new Error('Not allowed to set overall achievement progress.')
+    }
+
+    /** Percentage of progress made in the current achievement level */
+    get progressPercent() {
+        return (this._progress / (this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min)) * 100
     }
 
     /** Performs a sanity check to make sure we have all the correct data to continue. */
@@ -180,7 +195,7 @@ export default class Achievement {
         this.sanityCheck(this._settings)
 
         const data = {
-            id: this.id,
+            id: this._id,
             names: this._settings.names,
             descriptions: this._settings.descriptions,
             thresholds: this._settings.thresholds,
