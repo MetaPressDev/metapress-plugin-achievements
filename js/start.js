@@ -1,6 +1,8 @@
 import metadata from '../package.json'
 import AchievementManager from './AchievementManager'
 
+const TIME_INTERVAL = 250
+
 /**
  * Tracks user progress and awards achievements.
  */
@@ -14,11 +16,11 @@ export default class AchievementsPlugin {
     provides        = [ ]
     requires        = [ ]
 
-    /** Time at which the user has started to be in this world */
-    startTime = 0
-
     /** @type {AchievementManager} Achievement manager. */
     manager = null
+
+    /** Timer used to track time achievement progress. */
+    _timeTimer = null
 
     /** Called on load */
     onLoad() {
@@ -30,13 +32,25 @@ export default class AchievementsPlugin {
 
     /** Called before this plugin is unloaded */
     onUnload = () => {
-        this.manager.update('time', Date.now() - this.startTime, process.env.SIGN)
+        if (this._timeTimer) clearInterval(this._timeTimer)
         this.manager.save()
+    }
+
+    /** Sets up the time tracking achievement progress */
+    setupTimeTracking() {
+        if (this._timeTimer) {
+            clearInterval(this._timeTimer)
+        }
+
+        // Update time on a regular basis
+        this._timeTimer = setInterval(() => {
+            this.manager.update('time', TIME_INTERVAL, process.env.SIGN)
+        }, TIME_INTERVAL)
     }
 
     /** Called when the user enters the world */
     $loader_onEnterWorld() {
-        this.startTime = Date.now()
+        this.setupTimeTracking()
     }
 
 }

@@ -1,6 +1,7 @@
 import CryptoJS from 'crypto-js'
 
 import Achievement from './Achievement'
+import AchievementUI from './AchievementUI'
 
 const MOVE_ID = 'move'
 const JUMP_ID = 'jump'
@@ -17,6 +18,12 @@ export default class AchievementManager {
      * @type {Achievement[]}
      */
     _achievements = []
+
+    /**
+     * @private Reference to the achievement UI.
+     * @type {AchievementUI}
+     */
+    _uiRef = null
 
     /** Constructor for the achievement manager. */
     constructor() {
@@ -36,6 +43,17 @@ export default class AchievementManager {
         if (this._achievements.length < 1) {
             this._addInternal()
         }
+
+        // Register UI
+        this._uiRef = new AchievementUI()
+
+        // Listen for if an achievement has been unlocked
+        metapress.addEventListener('achievement.unlocked', this.onAchievementUnlocked)
+
+        // Save achievements on a regular basis
+        setInterval(() => {
+            this.save()
+        }, 1000 * 60)
     }
 
     /** @private Adds internal achievements. */
@@ -44,7 +62,7 @@ export default class AchievementManager {
         this.add(new Achievement({
             id: MOVE_ID,
             names: [ 'Learn to Move', 'Now We\'re Moving', 'Movement Pro', 'Movement Master' ],
-            descriptions: [ 'Move 10 metres.', 'Move 100 metres.', 'Move 10000 metres.', 'Move 1000000 metres.' ],
+            descriptions: [ 'Move 10 metres.', 'Move 100 metres.', 'Move 10 000 metres.', 'Move 1 000 000 metres.' ],
             thresholds: [
                 { min: 0, max: 10 },
                 { min: 11, max: 100 },
@@ -57,7 +75,7 @@ export default class AchievementManager {
         this.add(new Achievement({
             id: JUMP_ID,
             names: [ 'Jumping Jack', 'Jumping Jill', 'Jumping Pro', 'Too Much Jumping' ],
-            descriptions: [ 'Jump 10 times.', 'Jump 100 times.', 'Jump 10000 times.', 'Jump 1000000 times.' ],
+            descriptions: [ 'Jump 10 times.', 'Jump 100 times.', 'Jump 10 000 times.', 'Jump 1 000 000 times.' ],
             thresholds: [
                 { min: 0, max: 10 },
                 { min: 11, max: 100 },
@@ -78,6 +96,11 @@ export default class AchievementManager {
                 { min: 3_600_001, max: 86_400_000 }
             ]
         }))
+    }
+
+    /** Called when an achievement has been unlocked */
+    onAchievementUnlocked = data => {
+        this.save()
     }
 
     /**
@@ -130,7 +153,66 @@ export default class AchievementManager {
         }
 
         if (!hasUpdated) {
-            console.warn('[Achievement] Could not find achievement with id="' + id + '".')
+            console.warn('[Achievement] Could not find achievement with id = "' + id + '".')
+        }
+    }
+
+    /**
+     * Removes an achievement from the list.
+     * @param {string} id Identifier of the achievement to remove.
+     */
+    remove(id) {
+        if (!id) {
+            throw new Error('Achievement identifier must be provided.')
+        }
+
+        // Prevent unauthorized changes to internal achievements
+        if (INTERNAL_IDS.includes(id)) {
+            console.warn('[Achievement] Attempted to remove an internal achievement without proper authorization.')
+            return
+        }
+
+        const idx = this._achievements.findIndex(achievement => achievement.id === id)
+        if (idx < 0) {
+            console.warn('[Achievement] Could not find achievement with id = "' + id + '".')
+            return
+        }
+
+        // Remove
+        this._achievements.splice(idx, 1)
+    }
+
+    /**
+     * Resets the achievement that matches the given identifier.
+     * @param {string} id Identifier of the achievement to reset.
+     * @param {boolean} overall `true` if the entire achievement should be reset, `false` if only the current level should be reset.
+     */
+    reset(id, overall = false, sign = '') {
+        if (!id) {
+            throw new Error('Achievement identifier must be provided.')
+        }
+
+        // Prevent unauthorized changes to internal achievements
+        if (INTERNAL_IDS.includes(id) && (!sign || sign != process.env.SIGN)) {
+            console.warn('[Achievements] Attempted to reset an internal achievement without proper authorization.')
+            return
+        }
+
+        // Reset specific achievement
+        let hasReset = false
+        for (let idx = 0; idx < this._achievements.length; idx++) {
+            if (this._achievements[idx].id != id) {
+                continue
+            }
+
+            this._achievements[idx].reset(overall)
+            hasReset = true
+            break
+        }
+
+        // Save if we have reset an achievement
+        if (hasReset) {
+            this.save()
         }
     }
 

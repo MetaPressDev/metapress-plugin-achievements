@@ -179,6 +179,7 @@ export default class Achievement {
             this._level += 1
             this._progress = Math.max(newProgress - this._settings.thresholds[this._level].min, 0)
             this._overallProgress = this._settings.thresholds[this._level].min + this._progress
+            metapress.plugins.sendEvent('achievement.unlocked', { id: this._id, name: this._settings.names[this.level - 1], description: this._settings.descriptions[this.level - 1] })
 
         } else {
 
@@ -188,6 +189,23 @@ export default class Achievement {
 
         }
 
+    }
+
+    /**
+     * Resets the achievement.
+     * @param {boolean} overall `true` to reset the entire achievement back to the beginning, `false` to reset only the current level.
+     */
+    reset(overall = false) {
+        this.sanityCheck(this._settings)
+
+        if (overall) {
+            this._level = 0
+            this._progress = 0
+            this._overallProgress = 0
+        } else {
+            this._progress = 0
+            this._overallProgress = this._settings.thresholds[this._level].min
+        }
     }
 
     /** Prints the achievement data to the console. */
