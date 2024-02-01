@@ -20,6 +20,9 @@ export default class Achievement {
     /** @private Settings applied to this achievement */
     _settings = {}
 
+    /** @private `true` if we have unlocked the highest level for this achievement, `false` otherwise */
+    _hasUnlockedHighest = false
+
     /**
      * Constructor for a single achievement.
      * @param {object} settings Achievement settings.
@@ -159,12 +162,22 @@ export default class Achievement {
         }
     }
 
+    /** Sends an event when this achievement has been unlocked */
+    sendUnlockedEvent(name, description, image) {
+        metapress.plugins.sendEvent('achievement.unlocked', { id: this._id, name, description, image })
+    }
+
     /**
      * Updates this achievement with the given progress.
      * @param {number} progress Progress amount to update the achievement by.
      */
     update(progress) {
         this.sanityCheck(this._settings)
+
+        // No need to keep tracking if we are already at the highest level
+        if (this._hasUnlockedHighest) {
+            return
+        }
 
         // Edge case: Progress given is negative
         if (progress < 0) {
@@ -176,6 +189,16 @@ export default class Achievement {
             this._level = this._settings.thresholds.length - 1
             this._progress = this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min
             this._overallProgress = this._settings.thresholds[this._level].max
+
+            // Prevent achievement spam when progressing after highest level
+            if (!this._hasUnlockedHighest) {
+                this._hasUnlockedHighest = true
+                this.sendUnlockedEvent(
+                    this._settings.names[this._level],
+                    this._settings.descriptions[this._level],
+                    this._settings.images[this._level]
+                )
+            }
             return
         }
 
@@ -186,6 +209,16 @@ export default class Achievement {
             if (this._level + 1 >= this._settings.thresholds.length) {
                 this._progress = this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min
                 this._overallProgress = this._settings.thresholds[this._level].max
+
+                // Prevent achievement spam when progressing after highest level
+                if (!this._hasUnlockedHighest) {
+                    this._hasUnlockedHighest = true
+                    this.sendUnlockedEvent(
+                        this._settings.names[this._level],
+                        this._settings.descriptions[this._level],
+                        this._settings.images[this._level]
+                    )
+                }
                 return
             }
 
@@ -195,12 +228,11 @@ export default class Achievement {
             this._overallProgress = this._settings.thresholds[this._level].min + this._progress
 
             // Send unlocked event
-            metapress.plugins.sendEvent('achievement.unlocked', {
-                id: this._id,
-                name: this._settings.names[this.level - 1],
-                description: this._settings.descriptions[this.level - 1],
-                image: this._settings.images[this.level - 1]
-            })
+            this.sendUnlockedEvent(
+                this._settings.names[this._level - 1],
+                this._settings.descriptions[this._level - 1],
+                this._settings.images[this._level - 1]
+            )
 
         } else {
 
@@ -227,6 +259,8 @@ export default class Achievement {
             this._progress = 0
             this._overallProgress = this._settings.thresholds[this._level].min
         }
+
+        this._hasUnlockedHighest = false
     }
 
     /** Prints the achievement data to the console. */

@@ -209,7 +209,7 @@ export default class AchievementManager {
      * @param {string} id Identifier of the achievement to reset.
      * @param {boolean} overall `true` if the entire achievement should be reset, `false` if only the current level should be reset.
      */
-    reset(id, overall = false, sign = '') {
+    reset(id, overall = false, sign = '', preventSave = false) {
         if (!id) {
             throw new Error('Achievement identifier must be provided.')
         }
@@ -233,7 +233,7 @@ export default class AchievementManager {
         }
 
         // Save if we have reset an achievement
-        if (hasReset) {
+        if (hasReset && !preventSave) {
             this.save()
         }
     }
@@ -270,14 +270,70 @@ export default class AchievementManager {
         }
     }
 
-    /** Saves the current achievements and progress to storage */
-    save() {
+    /** @private Performs the achievements saving */
+    _performSave() {
         const serialized = JSON.stringify(this._achievements)
         const encrypted = CryptoJS.AES.encrypt(serialized, process.env.SECRET_KEY).toString()
         const checkValue = CryptoJS.SHA256(serialized).toString(CryptoJS.enc.Hex)
 
         // Save
         localStorage.setItem('achievements', encrypted + checkValue)
+    }
+
+    /** @private Performs a reset for all, or specific, achievements */
+    _performReset(previous) {
+        const sepIdx = previous.indexOf(':')
+
+        // Usage: Various ways to reset achievements by setting `localStorage['achievements']` to:
+        //   1. `reset` - Resets all achievements
+        //   2. `reset:all` - Resets all achievements, same as above
+        //   3. `reset:<id>` - Resets a specific achievement, if it exists
+        //   4. `reset:<id_1>,<id_2>` - Resets each achievement one by one, skipping any that do not exist
+
+        if (sepIdx < 0) {
+
+            // Hard reset every achievement
+            localStorage.removeItem('achievements')
+
+        } else {
+
+            // Reset specific achievement
+            const ids = previous.slice(sepIdx + 1)
+            const split = ids.split(',')
+
+            if (ids === 'all') {
+
+                localStorage.removeItem('achievements')
+
+            } else {
+
+                // Reset each achievement individually.
+                // Save on each is to prevent race conditions.
+                for (let idx = 0; idx < split.length; idx++) {
+                    if (!split[idx] || typeof split[idx] != 'string' || split[idx].length < 1) continue
+
+                    this.reset(split[idx], true, process.env.SIGN, true)
+                    this._performSave()
+                }
+
+            }
+
+        }
+    }
+
+    /** Saves the current achievements and progress to storage */
+    save() {
+
+        // BACKUP: In case of emergency, we can reset all, or specific, achievements
+        const previous = localStorage.getItem('achievements')
+        if (previous != null && typeof previous == 'string' && previous.startsWith('reset')) {
+            this._performReset(previous)
+            return
+        }
+
+        // Save
+        this._performSave()
+
     }
 
 }
