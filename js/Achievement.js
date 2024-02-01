@@ -27,6 +27,7 @@ export default class Achievement {
      * @param {string[]} settings.names Names for each level of the achievement.
      * @param {string[]} settings.descriptions Descriptions for each level of the achievement.
      * @param {{ min: number, max: number }[]} settings.thresholds Minimum and maximum values that denote the range of each level. Each minimum value needs to be higher than the maximum of the previous level.
+     * @param {string[]} settings.images Images for each level of the achievement.
      * @param {number=} settings.level Optional. Current level of the achievement. Default is 0.
      * @param {number=} settings.progress Optional. Current progress of the achievement in the current level. Must be irrespective of the minimum value of the level (e.g. if level is between 100 and 150, progress should be between 0 and 50). Default is 0.
      */
@@ -82,6 +83,15 @@ export default class Achievement {
         return (this._progress / (this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min)) * 100
     }
 
+    /** Image at the current achievement level */
+    get image() {
+        return this._settings.images[this._level]
+    }
+
+    set image(img) {
+        throw new Error('Not allowed to set achievement image.')
+    }
+
     /** Performs a sanity check to make sure we have all the correct data to continue. */
     sanityCheck(settings) {
         if (!settings || typeof settings != 'object' || Array.isArray(settings) || Object.keys(settings).length < 1) {
@@ -100,7 +110,11 @@ export default class Achievement {
             throw new Error('Achievement thresholds must be an array with at least one element.')
         }
 
-        if (settings.names.length != settings.descriptions.length || settings.names.length != settings.thresholds.length) {
+        if (!settings.images || !Array.isArray(settings.images) || settings.images.length < 1) {
+            throw new Error('Achievement images must be an array with at least one element.')
+        }
+
+        if (settings.names.length != settings.descriptions.length || settings.names.length != settings.thresholds.length || settings.names.length != settings.images.length) {
             throw new Error('Achievement names, descriptions, and thresholds must have the same number of elements.')
         }
 
@@ -179,7 +193,14 @@ export default class Achievement {
             this._level += 1
             this._progress = Math.max(newProgress - this._settings.thresholds[this._level].min, 0)
             this._overallProgress = this._settings.thresholds[this._level].min + this._progress
-            metapress.plugins.sendEvent('achievement.unlocked', { id: this._id, name: this._settings.names[this.level - 1], description: this._settings.descriptions[this.level - 1] })
+
+            // Send unlocked event
+            metapress.plugins.sendEvent('achievement.unlocked', {
+                id: this._id,
+                name: this._settings.names[this.level - 1],
+                description: this._settings.descriptions[this.level - 1],
+                image: this._settings.images[this.level - 1]
+            })
 
         } else {
 
