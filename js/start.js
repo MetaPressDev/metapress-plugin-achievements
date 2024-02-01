@@ -1,6 +1,7 @@
 import metadata from '../package.json'
 import AchievementManager from './AchievementManager'
 
+/** Interval between each time achievement update */
 const TIME_INTERVAL = 250
 
 /**

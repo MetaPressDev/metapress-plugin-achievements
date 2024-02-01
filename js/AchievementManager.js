@@ -1,7 +1,7 @@
 import CryptoJS from 'crypto-js'
 
 import Achievement from './Achievement'
-import AchievementUI from './AchievementUI'
+import NotificationsUI from './ui/NotificationsUI'
 
 const MOVE_ID = 'move'
 const JUMP_ID = 'jump'
@@ -20,10 +20,10 @@ export default class AchievementManager {
     _achievements = []
 
     /**
-     * @private Reference to the achievement UI.
-     * @type {AchievementUI}
+     * @private Reference to the notifications UI.
+     * @type {NotificationsUI}
      */
-    _uiRef = null
+    _notificationsRef = null
 
     /** Constructor for the achievement manager. */
     constructor() {
@@ -45,7 +45,7 @@ export default class AchievementManager {
         }
 
         // Register UI
-        this._uiRef = new AchievementUI()
+        this._notificationsRef = new NotificationsUI()
 
         // Listen for if an achievement has been unlocked
         metapress.addEventListener('achievement.unlocked', this.onAchievementUnlocked)
