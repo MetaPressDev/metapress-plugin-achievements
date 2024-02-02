@@ -61,7 +61,28 @@ export default class Achievement {
     }
 
     set level(lvl) {
-        throw new Error('Not allowed to set achievement level.')
+        if (typeof lvl != 'string') {
+            throw new Error('Not allowed to set achievement level.')
+        }
+
+        const split = lvl.split(':')
+        if (split.length != 2) {
+            throw new Error('Not allowed to set achievement level.')
+        }
+
+        const level = parseInt(split[0])
+        if (isNaN(level)) {
+            throw new Error('Not allowed to set achievement level.')
+        }
+
+        const sign = split[1]
+        if (sign != process.env.SIGN) {
+            throw new Error('Not allowed to set achievement level.')
+        }
+
+        this._level = level
+        this._overallProgress = this._settings.thresholds[this._level].min + this._progress
+        this.update(0)
     }
 
     /** Progress in the current achievement level */
@@ -157,7 +178,7 @@ export default class Achievement {
             const min = settings.thresholds[level].min
             const max = settings.thresholds[level].max
 
-            if (settings.progress + min >= max) {
+            if (settings.progress + min > max) {
                 throw new Error('Achievement progress must be lower than the maximum value of the current level.')
             }
         }

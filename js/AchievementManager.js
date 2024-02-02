@@ -3,10 +3,13 @@ import CryptoJS from 'crypto-js'
 import Achievement from './Achievement'
 import NotificationsUI from './ui/NotificationsUI'
 
+import MoveAchievement from './builtin/MoveAchievement'
+import JumpAchievement from './builtin/JumpAchievement'
+import TimeAchievement from './builtin/TimeAchievement'
+
 const MOVE_ID = 'move'
 const JUMP_ID = 'jump'
 const TIME_ID = 'time'
-const INTERNAL_IDS = [ MOVE_ID, JUMP_ID, TIME_ID ]
 
 /**
  * Manager for all achievements.
@@ -19,11 +22,24 @@ export default class AchievementManager {
      */
     _achievements = []
 
+    /** @private List of internal achievements. */
+    _internalAchievements = [
+        new MoveAchievement({ id: MOVE_ID }),
+        new JumpAchievement({ id: JUMP_ID }),
+        new TimeAchievement({ id: TIME_ID }),
+    ]
+
+    /** @private Identifiers of every internal achievement. */
+    _internalAchievementIds = [ MOVE_ID, JUMP_ID, TIME_ID ]
+
     /**
      * @private Reference to the notifications UI.
      * @type {NotificationsUI}
      */
     _notificationsRef = null
+
+    /** `true` if we have started to monitor for achievements, `false` otherwise */
+    started = false
 
     /** Constructor for the achievement manager. */
     constructor() {
@@ -53,6 +69,9 @@ export default class AchievementManager {
         // Listen for if an achievement has been unlocked
         metapress.addEventListener('achievement.unlocked', this.onAchievementUnlocked)
 
+        // Check if we have an outdated version of the achievements
+        this._checkForChanges()
+
         // Save achievements on a regular basis
         if (shouldSave) this.save()
         setInterval(() => {
@@ -62,66 +81,94 @@ export default class AchievementManager {
 
     /** @private Adds internal achievements. */
     _addInternal() {
-        // Movement tracking
-        this.add(new Achievement({
-            id: MOVE_ID,
-            names: [ 'Learn to Move', 'Let\'s Get Moving', 'Now We\'re Moving', 'Movement Pro', 'Movement Master' ],
-            descriptions: [ 'Move 1 metre.', 'Move 50 metres.', 'Move 1 000 metres.', 'Move 50 000 metres.', 'Move 1 000 000 metres.' ],
-            thresholds: [
-                { min: 0, max: 1 },
-                { min: 2, max: 50 },
-                { min: 51, max: 1000 },
-                { min: 1001, max: 50_000 },
-                { min: 50_001, max: 1_000_000 }
-            ],
-            images: [
-                require('../images/move-1.svg'),
-                require('../images/move-2.svg'),
-                require('../images/move-3.svg'),
-                require('../images/move-4.svg'),
-                require('../images/move-5.svg'),
-            ]
-        }))
+        for (let idx = 0; idx < this._internalAchievements.length; idx++) {
+            this.add(this._internalAchievements[idx])
+        }
+    }
 
-        // Jump tracking
-        this.add(new Achievement({
-            id: JUMP_ID,
-            names: [ 'First Jump', 'Jumping Jack', 'Jumping Jill', 'Jumping Pro', 'Too Much Jumping' ],
-            descriptions: [ 'Jump for the first time.', 'Jump 10 times.', 'Jump 100 times.', 'Jump 10 000 times.', 'Jump 100 000 times.' ],
-            thresholds: [
-                { min: 0, max: 1 },
-                { min: 2, max: 10 },
-                { min: 11, max: 100 },
-                { min: 101, max: 10_000 },
-                { min: 10_001, max: 100_000 }
-            ],
-            images: [
-                require('../images/jump-1.svg'),
-                require('../images/jump-2.svg'),
-                require('../images/jump-3.svg'),
-                require('../images/jump-4.svg'),
-                require('../images/jump-5.svg'),
-            ]
-        }))
+    /**
+     * Makes changes to the current achievement based on if the original has changed.
+     * @param {number} idx Index into the achievements array.
+     * @param {Achievement} original Original achievement to compare against.
+     */
+    _makeChanges(idx, original) {
+        const settings = original._settings
+        const achievement = this._achievements[idx]
 
-        // Time tracking
-        this.add(new Achievement({
-            id: TIME_ID,
-            names: [ 'Time Flies', 'Time Flies Faster', 'Time Flies Fastest', 'Time Flies Too Fast' ],
-            descriptions: [ 'Spend 1 minute in the world.', 'Spend 10 minutes in the world.', 'Spend 1 hour in the world.', 'Spend 1 day in the world.' ],
-            thresholds: [
-                { min: 0, max: 60_000 },
-                { min: 60_001, max: 600_000 },
-                { min: 600_001, max: 3_600_000 },
-                { min: 3_600_001, max: 86_400_000 }
-            ],
-            images: [
-                require('../images/time-1.svg'),
-                require('../images/time-2.svg'),
-                require('../images/time-3.svg'),
-                require('../images/time-4.svg'),
-            ]
-        }))
+        // No need to do any checking here
+        this._achievements[idx]._settings.names = settings.names
+        this._achievements[idx]._settings.descriptions = settings.descriptions
+        this._achievements[idx]._settings.images = settings.images
+
+        let hasThresholdChanged = false
+        if (settings.thresholds.length !== achievement._settings.thresholds.length) {
+
+            // Number of thresholds have changed
+            this._achievements[idx]._settings.thresholds = settings.thresholds
+            hasThresholdChanged = true
+
+        } else {
+
+            // Check each threshold for a change
+            for (let tIdx = 0; tIdx < achievement._settings.thresholds.length; tIdx++) {
+                if (settings.thresholds[tIdx].min !== achievement._settings.thresholds[tIdx].min || settings.thresholds[tIdx].max !== achievement._settings.thresholds[tIdx].max) {
+                    this._achievements[idx]._settings.thresholds = settings.thresholds
+                    hasThresholdChanged = true
+                    break
+                }
+            }
+
+        }
+
+        // We are now in a different threshold bracket
+        if (hasThresholdChanged) {
+            let newLevel = -1
+            for (let tIdx = 0; tIdx < this._achievements[idx]._settings.thresholds.length; tIdx++) {
+                if (this._achievements[idx]._settings.thresholds[tIdx].min <= this._achievements[idx].overallProgress && this._achievements[idx]._settings.thresholds[tIdx].max >= this._achievements[idx].overallProgress) {
+                    newLevel = tIdx
+                    break
+                }
+            }
+
+            if (newLevel === -1) {
+
+                // Have not found a single range that our current progress fits into,
+                // so we are at the highest level
+                newLevel = this._achievements[idx]._settings.thresholds.length - 1
+                let newProgress = this._achievements[idx]._settings.thresholds[newLevel].max - this._achievements[idx]._settings.thresholds[newLevel].min
+
+                this._achievements[idx]._settings.progress = newProgress
+                this._achievements[idx]._settings.level = newLevel
+                this._achievements[idx]._progress = newProgress
+                this._achievements[idx].level = `${newLevel}:${process.env.SIGN}`
+
+            } else if (newLevel !== this._achievements[idx].level) {
+
+                // Need to update level
+                this._achievements[idx]._settings.progress = this._achievements[idx].progress
+                this._achievements[idx]._settings.level = newLevel
+                this._achievements[idx].level = `${newLevel}:${process.env.SIGN}`
+
+            }
+        }
+    }
+
+    /**
+     * @private Checks if the current achievements are different from the original ones,
+     * in other words, if the current achievements are outdated.
+     */
+    _checkForChanges() {
+        for (let idx = 0; idx < this._achievements.length; idx++) {
+            const achievement = this._achievements[idx]
+            const internal = this._internalAchievements.find(a => a.id === achievement.id)
+
+            if (internal) {
+
+                // Make changes based on internal achievements
+                this._makeChanges(idx, internal)
+
+            }
+        }
     }
 
     /** Called when an achievement has been unlocked */
@@ -129,6 +176,25 @@ export default class AchievementManager {
         if (data?.sign && data.sign === process.env.SIGN) {
             this.save()
         }
+    }
+
+    /** Start monitoring for all achievements */
+    startMonitoring() {
+        this.started = true
+
+        // Start monitoring for achievements
+        this._achievements.forEach(achievement => {
+
+            // Stop any monitoring if we can
+            if (achievement.stop && typeof achievement.stop === 'function') {
+                achievement.stop()
+            }
+
+            if (achievement.start && typeof achievement.start === 'function') {
+                achievement.start(this.update)
+            }
+
+        })
     }
 
     /**
@@ -154,6 +220,11 @@ export default class AchievementManager {
         }
 
         this._achievements.push(achievement)
+
+        // Start tracking if we have provided the method
+        if (this.started && achievement.start && typeof achievement.start === 'function') {
+            achievement.start(this.update)
+        }
     }
 
     /** @returns Achievement matching the given identifier, or `null` if no achievement found. */
@@ -166,13 +237,13 @@ export default class AchievementManager {
      * @param {string} id Identifier of the achievement to update.
      * @param {number} progress Progress amount to increase achievement by.
      */
-    update(id, progress, sign = '') {
+    update = (id, progress, sign = '') => {
         if (id == null) {
             throw new Error('Achievement identifier must be provided.')
         }
 
         // Prevent unauthorized changes to internal achievements
-        if (INTERNAL_IDS.includes(id) && (!sign || sign != process.env.SIGN)) {
+        if (this._internalAchievementIds.includes(id) && (!sign || sign != process.env.SIGN)) {
             console.warn('[Achievements] Attempted to update an internal achievement without proper authorization.')
             return
         }
@@ -201,7 +272,7 @@ export default class AchievementManager {
         }
 
         // Prevent unauthorized changes to internal achievements
-        if (INTERNAL_IDS.includes(id)) {
+        if (this._internalAchievementIds.includes(id)) {
             console.warn('[Achievement] Attempted to remove an internal achievement without proper authorization.')
             return
         }
@@ -227,7 +298,7 @@ export default class AchievementManager {
         }
 
         // Prevent unauthorized changes to internal achievements
-        if ((id === 'all' || INTERNAL_IDS.includes(id)) && (!sign || sign != process.env.SIGN)) {
+        if ((id === 'all' || this._internalAchievementIds.includes(id)) && (!sign || sign != process.env.SIGN)) {
             console.warn('[Achievements] Attempted to reset an internal achievement without proper authorization.')
             return
         }
@@ -273,11 +344,43 @@ export default class AchievementManager {
 
             // Convert to actual achievement instances, since we lose this when serializing
             rawAchievements.forEach(raw => {
-                const achievement = new Achievement({
-                    ...raw._settings,
-                    progress: raw._progress,
-                    level: raw._level,
-                })
+                let achievement = null
+
+                // Special achievement type
+                if (this._internalAchievementIds.includes(raw._id)) {
+                    if (raw._id === MOVE_ID) {
+                        achievement = new MoveAchievement({
+                            ...raw._settings,
+                            id: MOVE_ID,
+                            progress: raw._progress,
+                            level: raw._level
+                        })
+                    } else if (raw._id === JUMP_ID) {
+                        achievement = new JumpAchievement({
+                            ...raw._settings,
+                            id: JUMP_ID,
+                            progress: raw._progress,
+                            level: raw._level
+                        })
+                    } else if (raw._id === TIME_ID) {
+                        achievement = new TimeAchievement({
+                            ...raw._settings,
+                            id: TIME_ID,
+                            progress: raw._progress,
+                            level: raw._level
+                        })
+                    }
+                }
+
+                // No achievement yet
+                if (!achievement) {
+                    achievement = new Achievement({
+                        ...raw._settings,
+                        progress: raw._progress,
+                        level: raw._level,
+                    })
+                }
+
                 this.add(achievement)
             })
         } catch (err) {
