@@ -238,8 +238,12 @@ export default class AchievementManager {
      * @param {number} progress Progress amount to increase achievement by.
      */
     update = (id, progress, sign = '') => {
-        if (id == null) {
+        if (id == null || typeof id != 'string' || id.length < 1) {
             throw new Error('Achievement identifier must be provided.')
+        }
+
+        if (progress == null || typeof progress != 'number' || progress < 0) {
+            throw new Error('Achievement progress must be a positive number.')
         }
 
         // Prevent unauthorized changes to internal achievements

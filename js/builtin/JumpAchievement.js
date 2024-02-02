@@ -1,7 +1,14 @@
 import Achievement from '../Achievement'
 
+/**
+ * Achievement for jumping in the world.
+ */
 export default class JumpAchievement extends Achievement {
 
+    /**
+     * Constructor for the jump achievement.
+     * @param {object} props Properties for the achievement.
+     */
     constructor(props) {
         super(Object.assign({
             names: [ 'First Jump', 'Jumping Jack', 'Jumping Jill', 'Jumping Pro', 'Too Much Jumping' ],
@@ -21,6 +28,14 @@ export default class JumpAchievement extends Achievement {
                 require('../../images/jump-5.svg'),
             ]
         }, props))
+    }
+
+    /**
+     * Starts monitoring for this achievement.
+     * @param {(id: string, progress: number) => void} updateCallback Callback used to update the achievement.
+     */
+    start(updateCallback) {
+        metapress.plugins.addEventListener('avatar_jump', () => updateCallback(this.id, 1, process.env.SIGN))
     }
 
 }
