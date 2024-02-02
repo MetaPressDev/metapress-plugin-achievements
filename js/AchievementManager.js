@@ -126,7 +126,9 @@ export default class AchievementManager {
 
     /** Called when an achievement has been unlocked */
     onAchievementUnlocked = data => {
-        this.save()
+        if (data?.sign && data.sign === process.env.SIGN) {
+            this.save()
+        }
     }
 
     /**

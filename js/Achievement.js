@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
+import { toRoman } from './Utils'
 
 /**
  * A single achievement that can have a single level or multiple levels.
@@ -164,7 +165,8 @@ export default class Achievement {
 
     /** Sends an event when this achievement has been unlocked */
     sendUnlockedEvent(name, description, image) {
-        metapress.plugins.sendEvent('achievement.unlocked', { id: this._id, name, description, image })
+        metapress.plugins.sendEvent('achievement.unlocked', { id: this._id, name, description, image, sign: process.env.SIGN })
+        console.debug(`[Achievement] Unlocked "${name}" ${this._settings.thresholds.length > 1 ? toRoman(this._level) : ''} - ${description}`)
     }
 
     /**
