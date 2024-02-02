@@ -208,6 +208,11 @@ class Notification {
     /** Updates the position of this notification */
     update(index) {
         this._index = index
+
+        if (!this.element) {
+            return
+        }
+
         this.element.style.bottom = this._index * (HEIGHT + GAP) + 'px'
     }
 

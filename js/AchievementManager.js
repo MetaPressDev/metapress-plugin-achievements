@@ -27,6 +27,7 @@ export default class AchievementManager {
 
     /** Constructor for the achievement manager. */
     constructor() {
+        let shouldSave = false
         try {
             const key = localStorage.getItem('achievements') || null
             if (key == null) {
@@ -37,11 +38,13 @@ export default class AchievementManager {
         } catch (err) {
             console.warn('[Achievements] Failed to load previous achievements.', err)
             this._addInternal()
+            shouldSave = true
         }
 
         // No achievements found
         if (this._achievements.length < 1) {
             this._addInternal()
+            shouldSave = true
         }
 
         // Register UI
@@ -51,6 +54,7 @@ export default class AchievementManager {
         metapress.addEventListener('achievement.unlocked', this.onAchievementUnlocked)
 
         // Save achievements on a regular basis
+        if (shouldSave) this.save()
         setInterval(() => {
             this.save()
         }, 1000 * 60)
@@ -62,13 +66,13 @@ export default class AchievementManager {
         this.add(new Achievement({
             id: MOVE_ID,
             names: [ 'Learn to Move', 'Let\'s Get Moving', 'Now We\'re Moving', 'Movement Pro', 'Movement Master' ],
-            descriptions: [ 'Move 1 metre.', 'Move 10 metres.', 'Move 100 metres.', 'Move 10 000 metres.', 'Move 1 000 000 metres.' ],
+            descriptions: [ 'Move 1 metre.', 'Move 50 metres.', 'Move 1 000 metres.', 'Move 50 000 metres.', 'Move 1 000 000 metres.' ],
             thresholds: [
                 { min: 0, max: 1 },
-                { min: 2, max: 10 },
-                { min: 11, max: 100 },
-                { min: 101, max: 10_000 },
-                { min: 10_001, max: 1_000_000 }
+                { min: 2, max: 50 },
+                { min: 51, max: 1000 },
+                { min: 1001, max: 50_000 },
+                { min: 50_001, max: 1_000_000 }
             ],
             images: [
                 require('../images/move-1.svg'),
@@ -83,13 +87,13 @@ export default class AchievementManager {
         this.add(new Achievement({
             id: JUMP_ID,
             names: [ 'First Jump', 'Jumping Jack', 'Jumping Jill', 'Jumping Pro', 'Too Much Jumping' ],
-            descriptions: [ 'Jump for the first time.', 'Jump 10 times.', 'Jump 100 times.', 'Jump 10 000 times.', 'Jump 1 000 000 times.' ],
+            descriptions: [ 'Jump for the first time.', 'Jump 10 times.', 'Jump 100 times.', 'Jump 10 000 times.', 'Jump 100 000 times.' ],
             thresholds: [
                 { min: 0, max: 1 },
                 { min: 2, max: 10 },
                 { min: 11, max: 100 },
                 { min: 101, max: 10_000 },
-                { min: 10_001, max: 1_000_000 }
+                { min: 10_001, max: 100_000 }
             ],
             images: [
                 require('../images/jump-1.svg'),
@@ -138,6 +142,12 @@ export default class AchievementManager {
         // Not allowed to duplicate achievements
         if (this._achievements.find(a => a.id === achievement.id)) {
             console.warn('[Achievements] Achievement with identifier "' + achievement.id + '" already exists.')
+            return
+        }
+
+        // Not allowed to use reserved identifiers
+        if (achievement.id === 'all') {
+            console.warn('[Achievements] Identifier "all" is reserved and cannot be used.')
             return
         }
 
@@ -215,7 +225,7 @@ export default class AchievementManager {
         }
 
         // Prevent unauthorized changes to internal achievements
-        if (INTERNAL_IDS.includes(id) && (!sign || sign != process.env.SIGN)) {
+        if ((id === 'all' || INTERNAL_IDS.includes(id)) && (!sign || sign != process.env.SIGN)) {
             console.warn('[Achievements] Attempted to reset an internal achievement without proper authorization.')
             return
         }
@@ -223,13 +233,16 @@ export default class AchievementManager {
         // Reset specific achievement
         let hasReset = false
         for (let idx = 0; idx < this._achievements.length; idx++) {
-            if (this._achievements[idx].id != id) {
+            if (id !== 'all' && this._achievements[idx].id != id) {
                 continue
             }
 
             this._achievements[idx].reset(overall)
             hasReset = true
-            break
+
+            if (id !== 'all') {
+                break
+            }
         }
 
         // Save if we have reset an achievement
