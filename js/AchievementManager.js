@@ -6,6 +6,7 @@ import NotificationsUI from './ui/NotificationsUI'
 import MoveAchievement from './builtin/MoveAchievement'
 import JumpAchievement from './builtin/JumpAchievement'
 import TimeAchievement from './builtin/TimeAchievement'
+import CustomAchievement from './builtin/CustomAchievement'
 
 const MOVE_ID = 'move'
 const JUMP_ID = 'jump'
@@ -33,17 +34,25 @@ export default class AchievementManager {
     _internalAchievementIds = [ MOVE_ID, JUMP_ID, TIME_ID ]
 
     /**
+     * @private List of external achievements, registered by other plugins.
+     * @type {Achievement[]}
+     */
+    _externalAchievements = []
+
+    /**
      * @private Reference to the notifications UI.
      * @type {NotificationsUI}
      */
     _notificationsRef = null
+
+    /** @private Settings that need to be applied when loading external achievement */
+    _externalSettings = {}
 
     /** `true` if we have started to monitor for achievements, `false` otherwise */
     started = false
 
     /** Constructor for the achievement manager. */
     constructor() {
-        let shouldSave = false
         try {
             const key = localStorage.getItem('achievements') || null
             if (key == null) {
@@ -54,13 +63,11 @@ export default class AchievementManager {
         } catch (err) {
             console.warn('[Achievements] Failed to load previous achievements.', err)
             this._addInternal()
-            shouldSave = true
         }
 
         // No achievements found
         if (this._achievements.length < 1) {
             this._addInternal()
-            shouldSave = true
         }
 
         // Register UI
@@ -69,11 +76,8 @@ export default class AchievementManager {
         // Listen for if an achievement has been unlocked
         metapress.addEventListener('achievement.unlocked', this.onAchievementUnlocked)
 
-        // Check if we have an outdated version of the achievements
-        this._checkForChanges()
-
         // Save achievements on a regular basis
-        if (shouldSave) this.save()
+        this.save()
         setInterval(() => {
             this.save()
         }, 1000 * 60)
@@ -87,7 +91,7 @@ export default class AchievementManager {
     }
 
     /**
-     * Makes changes to the current achievement based on if the original has changed.
+     * @private Makes changes to the current achievement based on if the original has changed.
      * @param {number} idx Index into the achievements array.
      * @param {Achievement} original Original achievement to compare against.
      */
@@ -153,11 +157,49 @@ export default class AchievementManager {
         }
     }
 
+    /** @private Fetches a list of external achievements that need to be registered */
+    _fetchExternalAchievements() {
+        const additional = metapress.plugins.callAll('achievements_register').flat().filter(a => !!a)
+        const unique = {}
+
+        // Remove any duplicates by adding to a map, 
+        for (let idx = 0; idx < additional.length; idx++) {
+            unique[additional[idx].id] = additional[idx]
+        }
+
+        return Object.values(unique)
+    }
+
     /**
-     * @private Checks if the current achievements are different from the original ones,
+     * Checks if the current achievements are different from the original ones,
      * in other words, if the current achievements are outdated.
      */
-    _checkForChanges() {
+    checkForChanges() {
+        const additional = this._fetchExternalAchievements()
+
+        for (let idx = 0; idx < additional.length; idx++) {
+            let props = { ...additional[idx] }
+
+            let startFunc = props.start || null
+            let stopFunc = props.stop || null
+            delete props.start
+            delete props.stop
+
+            try {
+                let settings = this._externalSettings[props.id] || {}
+                let asAchievement = new CustomAchievement({
+                    ...props,
+                    ...settings
+                }, startFunc, stopFunc)
+
+                // Add as external achievement
+                delete this._externalSettings[props.id]
+                this.add(asAchievement, true)
+            } catch (err) {
+                console.warn('[Achievements] Unable to add custom achievement with id "' + (additional.id || '') + '".', err)
+            }
+        }
+
         for (let idx = 0; idx < this._achievements.length; idx++) {
             const achievement = this._achievements[idx]
             const internal = this._internalAchievements.find(a => a.id === achievement.id)
@@ -169,6 +211,9 @@ export default class AchievementManager {
 
             }
         }
+
+        // Save any changes immediately
+        this.save()
     }
 
     /** Called when an achievement has been unlocked */
@@ -200,8 +245,9 @@ export default class AchievementManager {
     /**
      * Adds an achievement.
      * @param {Achievement} achievement Achievement to add.
+     * @param {boolean} isExternal `true` if the achievement is external, `false` otherwise.
      */
-    add(achievement) {
+    add(achievement, isExternal = false) {
         if (!achievement || typeof achievement != 'object' || Object.keys(achievement).length < 1 || !(achievement instanceof Achievement)) {
             console.warn('[Achievements] Attempted to add an invalid achievement.')
             return
@@ -217,6 +263,11 @@ export default class AchievementManager {
         if (achievement.id === 'all') {
             console.warn('[Achievements] Identifier "all" is reserved and cannot be used.')
             return
+        }
+
+        // Add to list of external achievements
+        if (isExternal) {
+            this._externalAchievements.push(achievement)
         }
 
         this._achievements.push(achievement)
@@ -287,6 +338,11 @@ export default class AchievementManager {
             return
         }
 
+        // Stop achievement if given the method
+        if (this._achievements[idx].stop && typeof this._achievements[idx].stop === 'function') {
+            this._achievements[idx].stop()
+        }
+
         // Remove
         this._achievements.splice(idx, 1)
     }
@@ -329,10 +385,14 @@ export default class AchievementManager {
     }
 
     /**
-     * Loads the achievements from an encrypted string.
-     * @param {string} str Encrypted string to load achievements from.
+     * @private Attempts to decrypt the given achievement string.
+     * @param {string} str Achievement string to decrypt.
      */
-    load(str) {
+    _decrypt(str, sign = '') {
+        if (!sign || sign != process.env.SIGN) {
+            throw new Error('Not allowed to decrypt achievements.')
+        }
+
         const encryptedData = str.slice(0, -64) // Remove the last 64 characters (SHA256 hash)
         const checkValue = str.slice(-64)
         const decryptedString = CryptoJS.AES.decrypt(encryptedData, process.env.SECRET_KEY).toString(CryptoJS.enc.Utf8)
@@ -342,9 +402,16 @@ export default class AchievementManager {
             throw new Error('Data integrity check failed. Achievement data may have been tampered with.')
         }
 
-        // Done
+        return JSON.parse(decryptedString)
+    }
+
+    /**
+     * Loads the achievements from an encrypted string.
+     * @param {string} str Encrypted string to load achievements from.
+     */
+    load(str) {
         try {
-            const rawAchievements = JSON.parse(decryptedString)
+            const rawAchievements = this._decrypt(str, process.env.SIGN)
 
             // Convert to actual achievement instances, since we lose this when serializing
             rawAchievements.forEach(raw => {
@@ -376,16 +443,21 @@ export default class AchievementManager {
                     }
                 }
 
-                // No achievement yet
                 if (!achievement) {
-                    achievement = new Achievement({
-                        ...raw._settings,
+
+                    // No achievement yet, so must be external
+                    this._externalSettings[raw._id] = {
                         progress: raw._progress,
                         level: raw._level,
-                    })
+                    }
+
+                } else {
+
+                    // Add internal achievement
+                    this.add(achievement)
+
                 }
 
-                this.add(achievement)
             })
         } catch (err) {
             throw new Error('Failed to decrypt data. ' + err.message)

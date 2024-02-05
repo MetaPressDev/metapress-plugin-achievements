@@ -32,6 +32,7 @@ export default class AchievementsPlugin {
 
     /** Called when the user enters the world */
     $loader_onEnterWorld() {
+        this.manager.checkForChanges()
         this.manager.startMonitoring()
     }
 

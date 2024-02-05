@@ -44,6 +44,7 @@ export default class Achievement {
         this._level = settings.level || 0
         this._progress = settings.progress || 0
         this._overallProgress = settings.thresholds[this._level].min + this._progress
+        this._hasUnlockedHighest = this._overallProgress >= settings.thresholds[settings.thresholds.length - 1].max
     }
 
     /** Identifier of the achievement */
