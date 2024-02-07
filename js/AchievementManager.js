@@ -111,6 +111,7 @@ export default class AchievementManager {
         this._achievements[idx]._settings.names = settings.names
         this._achievements[idx]._settings.descriptions = settings.descriptions
         this._achievements[idx]._settings.images = settings.images
+        this._achievements[idx]._settings.colors = settings.colors
 
         let hasThresholdChanged = false
         if (settings.thresholds.length !== achievement._settings.thresholds.length) {

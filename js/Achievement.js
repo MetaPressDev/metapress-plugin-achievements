@@ -187,6 +187,27 @@ export default class Achievement {
             throw new Error('Achievement colors must have the same number of elements as names, descriptions, thresholds and images.')
         }
 
+        if (settings.colors) {
+            let errMsg = 'Each achievement color must have a primary, secondary, and tertiary value in the form of a hexadecimal string.'
+            let regex = /\#[A-Fa-f0-9]{6}/
+
+            for (let i = 0; i < settings.colors.length; i++) {
+                let color = settings.colors[i]
+
+                if (color.primary == null || typeof color.primary != 'string' || color.primary.length != 7 || color.primary[0] != '#' || !regex.test(color.primary)) {
+                    throw new Error(errMsg)
+                }
+
+                if (color.secondary == null || typeof color.secondary != 'string' || color.secondary.length != 7 || color.secondary[0] != '#' || !regex.test(color.secondary)) {
+                    throw new Error(errMsg)
+                }
+
+                if (color.tertiary == null || typeof color.tertiary != 'string' || color.tertiary.length != 7 || color.tertiary[0] != '#' || !regex.test(color.tertiary)) {
+                    throw new Error(errMsg)
+                }
+            }
+        }
+
         for (let i = 0; i < settings.thresholds.length; i++) {
             if (settings.thresholds[i].min == null || settings.thresholds[i].max == null || settings.thresholds[i].min >= settings.thresholds[i].max) {
                 throw new Error('Achievement thresholds must have a minimum and maximum value, and the minimum must be lower than the maximum.')
