@@ -184,13 +184,13 @@ class Notification {
         this.element.style.cssText = `display: flex; position: absolute; bottom: ${this._index * (HEIGHT + GAP)}px; right: -260px; width: 240px; height: 70px; flex-shrink: 0; border-radius: 5px; border: 1px solid #1B1B1B; background: #353535; box-shadow: 2px 2px 6px 0 rgba(0, 0, 0, 0.25); overflow: hidden; align-items: center; transition: all 0.35s ease;`
 
         // Image
-        const imgWidth = 55
+        const imgWidth = 70
         const imageContainer = document.createElement('div')
         imageContainer.style.cssText = `display: flex; width: ${imgWidth}px; height: 70px; background: #4B4B4B; flex-shrink: 0; justify-content: center; align-items: center;`
 
         const image = document.createElement('img')
         image.src = this._image
-        image.style.cssText = `width: 100%; height: 100%;`
+        image.style.cssText = `width: 60px; height: 60px;`
 
         imageContainer.appendChild(image)
         this.element.appendChild(imageContainer)

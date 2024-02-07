@@ -27,11 +27,11 @@ export default class MoveAchievement extends Achievement {
                 { min: 50_001, max: 1_000_000 }
             ],
             images: [
-                require('../../images/move-1.svg'),
-                require('../../images/move-2.svg'),
-                require('../../images/move-3.svg'),
-                require('../../images/move-4.svg'),
-                require('../../images/move-5.svg'),
+                require('../../images/move-1.png'),
+                require('../../images/move-2.png'),
+                require('../../images/move-3.png'),
+                require('../../images/move-4.png'),
+                require('../../images/move-5.png'),
             ]
         }, props))
     }

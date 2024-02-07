@@ -21,11 +21,11 @@ export default class JumpAchievement extends Achievement {
                 { min: 10_001, max: 100_000 }
             ],
             images: [
-                require('../../images/jump-1.svg'),
-                require('../../images/jump-2.svg'),
-                require('../../images/jump-3.svg'),
-                require('../../images/jump-4.svg'),
-                require('../../images/jump-5.svg'),
+                require('../../images/jump-1.png'),
+                require('../../images/jump-2.png'),
+                require('../../images/jump-3.png'),
+                require('../../images/jump-4.png'),
+                require('../../images/jump-5.png'),
             ]
         }, props))
     }
