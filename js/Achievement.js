@@ -1,6 +1,15 @@
 import { v4 as uuidv4 } from 'uuid'
 import { toRoman } from './Utils'
 
+/** Default colors for each achievement level */
+const DEFAULT_COLORS = [
+    { primary: '#B08D57', secondary: '#665233', tertiary: '#2F2516' },
+    { primary: '#C0C0C0', secondary: '#5A5A5A', tertiary: '#343434' },
+    { primary: '#D4AF37', secondary: '#836D28', tertiary: '#433710' },
+    { primary: '#6292DB', secondary: '#3C5A86', tertiary: '#22324A' },
+    { primary: '#A562DB', secondary: '#5E367D', tertiary: '#361F47' },
+]
+
 /**
  * A single achievement that can have a single level or multiple levels.
  */
@@ -20,6 +29,9 @@ export default class Achievement {
 
     /** @private Settings applied to this achievement */
     _settings = {}
+
+    /** @private Colors that should be used for each achievement level */
+    _colors = []
 
     /** @private `true` if we have unlocked the highest level for this achievement, `false` otherwise */
     _hasUnlockedHighest = false
@@ -43,6 +55,7 @@ export default class Achievement {
         this._settings = settings
         this._level = settings.level || 0
         this._progress = settings.progress || 0
+        this._colors = settings.colors || DEFAULT_COLORS
         this._overallProgress = settings.thresholds[this._level].min + this._progress
         this._hasUnlockedHighest = this._overallProgress >= settings.thresholds[settings.thresholds.length - 1].max
     }
@@ -109,6 +122,15 @@ export default class Achievement {
         return (this._progress / (this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min)) * 100
     }
 
+    /** Maximum amount of progress for this level */
+    get progressMax() {
+        return this._settings.thresholds[this._level].max
+    }
+
+    set progressMax(max) {
+        throw new Error('Not allowed to set achievement progress maximum.')
+    }
+
     /** Image at the current achievement level */
     get image() {
         return this._settings.images[this._level]
@@ -116,6 +138,15 @@ export default class Achievement {
 
     set image(img) {
         throw new Error('Not allowed to set achievement image.')
+    }
+
+    /** Colors for each achievement level */
+    get colors() {
+        return this._colors[this._level]
+    }
+
+    set colors(cols) {
+        throw new Error('Not allowed to set achievement colors.')
     }
 
     /** Performs a sanity check to make sure we have all the correct data to continue. */
@@ -140,8 +171,20 @@ export default class Achievement {
             throw new Error('Achievement images must be an array with at least one element.')
         }
 
+        if (!settings.colors && settings.names.length > DEFAULT_COLORS.length) {
+            throw new Error('Achievement colors must be given if there are more than the default number of levels.')
+        }
+
+        if (settings.colors && (!Array.isArray(settings.colors) || settings.colors.length < 1)) {
+            throw new Error('Achievement colors must be an array with at least one element.')
+        }
+
         if (settings.names.length != settings.descriptions.length || settings.names.length != settings.thresholds.length || settings.names.length != settings.images.length) {
-            throw new Error('Achievement names, descriptions, and thresholds must have the same number of elements.')
+            throw new Error('Achievement names, descriptions, thresholds, and images must have the same number of elements.')
+        }
+
+        if (settings.colors && settings.names.length != settings.colors.length) {
+            throw new Error('Achievement colors must have the same number of elements as names, descriptions, thresholds and images.')
         }
 
         for (let i = 0; i < settings.thresholds.length; i++) {
