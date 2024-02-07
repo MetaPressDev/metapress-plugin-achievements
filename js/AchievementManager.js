@@ -60,6 +60,16 @@ export default class AchievementManager {
 
     /** Constructor for the achievement manager. */
     constructor() {
+        this._init()
+    }
+
+    /** Initializes all achievement details */
+    async _init() {
+        if (!window.metapress) {
+            setTimeout(() => this._init(), 3000)
+            return
+        }
+
         try {
             const key = localStorage.getItem('achievements') || null
             if (key == null) {

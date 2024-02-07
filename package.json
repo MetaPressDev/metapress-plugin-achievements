@@ -12,7 +12,7 @@
         "metapress",
         "plugin"
     ],
-    "author": "",
+    "author": "MetaPress",
     "license": "ISC",
     "metapress": {
         "id": "com.metapress.achievements",

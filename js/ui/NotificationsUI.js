@@ -28,6 +28,15 @@ export default class NotificationsUI {
 
     /** Constructor for the notifications UI */
     constructor() {
+        this._init()
+    }
+
+    /** Initialize notifications UI */
+    _init() {
+        if (!metapress?.contentDiv) {
+            setTimeout(() => this._init(), 1000)
+        }
+
         const style = document.createElement('style')
         style.innerHTML = `
 
@@ -85,13 +94,13 @@ export default class NotificationsUI {
         this._notifications.push(notification)
 
         setTimeout(async () => {
-            await this.close(notification.id)
+            await this.close(notification._id)
 
             // Update positions of all remaining achievements
             for (let idx = 0; idx < this._notifications.length; idx++) {
                 this._notifications[idx].update(idx)
             }
-        }, 4000)
+        }, 5000)
     }
 
     /**
@@ -99,13 +108,15 @@ export default class NotificationsUI {
      * @param {string} id Identifier of the notification to close.
      */
     async close(id) {
-        const nIdx = this._notifications.findIndex(n => n.id == id)
-        if (nIdx < 0) {
-            return
-        }
+        for (let idx = 0; idx < this._notifications.length; idx++) {
+            if (this._notifications[idx]._id != id) {
+                continue
+            }
 
-        await this._notifications[nIdx].delete()
-        this._notifications.splice(nIdx, 1)
+            await this._notifications[idx].delete()
+            this._notifications.splice(idx, 1)
+            break
+        }
     }
 
 }
@@ -227,11 +238,9 @@ class Notification {
         this.element.style.opacity = 0
 
         // Wait for element to disappear before removing from DOM
-        await new Promise(resolve => setTimeout(() => {
-            document.getElementById(CONTAINER_ID).removeChild(this.element)
-            this.element = null
-            resolve()
-        }, 350))
+        await new Promise(resolve => setTimeout(() => resolve(), 350))
+        this.element.remove()
+        this.element = null
     }
 
 }

@@ -69,6 +69,15 @@ export default class Achievement {
         throw new Error('Not allowed to set the achievement identifier.')
     }
 
+    /** Name of the achievement */
+    get name() {
+        return this._settings.names[this._level]
+    }
+
+    set name(n) {
+        throw new Error('Not allowed to set achievement name.')
+    }
+
     /** Level of the current achievement */
     get level() {
         return this._level
@@ -138,6 +147,17 @@ export default class Achievement {
 
     set image(img) {
         throw new Error('Not allowed to set achievement image.')
+    }
+
+    /** Image for the next achievement */
+    get nextImage() {
+        return this._level + 1 >= this._settings.images.length
+            ? require('../images/completed.svg')
+            : this._settings.images[this._level + 1]
+    }
+
+    set nextImage(img) {
+        throw new Error('Not allowed to set next achievement image.')
     }
 
     /** Colors for each achievement level */
@@ -310,17 +330,37 @@ export default class Achievement {
                 return
             }
 
-            // Level up
-            this._level += 1
-            this._progress = Math.max(newProgress - this._settings.thresholds[this._level].min, 0)
-            this._overallProgress = this._settings.thresholds[this._level].min + this._progress
+            // Find next level
+            let levelsProgressed = []
+            let found = false
+            for (let idx = this._level + 1; idx < this._settings.thresholds.length; idx++) {
+                levelsProgressed.push(idx - 1)
 
-            // Send unlocked event
-            this.sendUnlockedEvent(
-                this._settings.names[this._level - 1],
-                this._settings.descriptions[this._level - 1],
-                this._settings.images[this._level - 1]
-            )
+                if (newProgress >= this._settings.thresholds[idx].min && newProgress < this._settings.thresholds[idx].max) {
+                    this._level = idx
+                    found = true
+                    break
+                }
+            }
+
+            if (found) {
+                // Level up
+                this._progress = Math.max(newProgress - this._settings.thresholds[this._level].min, 0)
+                this._overallProgress = this._settings.thresholds[this._level].min + this._progress
+                let offsets = levelsProgressed.map((_, idx) => idx)
+
+                // Send unlocked event for each level unlocked
+                for (let idx = 0; idx < levelsProgressed.length; idx++) {
+                    let level = levelsProgressed[idx]
+                    setTimeout(() => {
+                        this.sendUnlockedEvent(
+                            this._settings.names[level],
+                            this._settings.descriptions[level],
+                            this._settings.images[level]
+                        )
+                    }, offsets[idx] * 200)
+                }
+            }
 
         } else {
 
