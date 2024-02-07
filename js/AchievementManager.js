@@ -2,6 +2,7 @@ import CryptoJS from 'crypto-js'
 
 import Achievement from './Achievement'
 import NotificationsUI from './ui/NotificationsUI'
+import PanelUI from './ui/PanelUI'
 
 import MoveAchievement from './builtin/MoveAchievement'
 import JumpAchievement from './builtin/JumpAchievement'
@@ -45,6 +46,12 @@ export default class AchievementManager {
      */
     _notificationsRef = null
 
+    /**
+     * @private Reference to the panel UI.
+     * @type {PanelUI}
+     */
+    _panelRef = null
+
     /** @private Settings that need to be applied when loading external achievement */
     _externalSettings = {}
 
@@ -72,6 +79,7 @@ export default class AchievementManager {
 
         // Register UI
         this._notificationsRef = new NotificationsUI()
+        this._panelRef = new PanelUI(this)
 
         // Listen for if an achievement has been unlocked
         metapress.addEventListener('achievement.unlocked', this.onAchievementUnlocked)
