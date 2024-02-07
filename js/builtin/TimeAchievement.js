@@ -26,10 +26,10 @@ export default class TimeAchievement extends Achievement {
                 { min: 3_600_001, max: 86_400_000 }
             ],
             images: [
-                require('../../images/time-1.svg'),
-                require('../../images/time-2.svg'),
-                require('../../images/time-3.svg'),
-                require('../../images/time-4.svg'),
+                require('../../images/time-1.png'),
+                require('../../images/time-2.png'),
+                require('../../images/time-3.png'),
+                require('../../images/time-4.png'),
             ]
         }, props))
     }

@@ -130,7 +130,7 @@ class SingleAchievement extends React.Component {
             <img src={this.props.achievement.image} style={{ position: 'relative', top: 0, width: 70, height: 70, flexShrink: 0 }} />
 
             {/* Name of achievement level */}
-            <p style={{ display: '-webkit-box', margin: '2px 0 0 0', padding: 0, width: contentWidth, height: 44, flexShrink: 0, fontSize: 14, textAlign: 'center', textShadow: '0 0 2px #000000', WebkitLineClamp: 2, WebkitBoxOrient: 'horizontal', WebkitBoxAlign: 'center', WebkitBoxPack: 'center', overflow: 'hidden' }}>
+            <p style={{ display: '-webkit-box', margin: '2px 0 0 0', padding: 0, width: contentWidth, height: 44, flexShrink: 0, fontSize: 14, textAlign: 'center', textShadow: '1px 1px 2px #000000', WebkitLineClamp: 2, WebkitBoxOrient: 'horizontal', WebkitBoxAlign: 'center', WebkitBoxPack: 'center', overflow: 'hidden' }}>
                 { this.props.achievement.name }
             </p>
 
