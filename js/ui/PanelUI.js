@@ -50,11 +50,6 @@ class AchievementsMenu extends React.PureComponent {
 
     }
 
-    /** All registered achievements */
-    get achievements() {
-        return this.props.achievements._achievements
-    }
-
     /** Called after first render */
     componentDidMount() {
         this._updateTimer = setInterval(this.refresh, 1000)
@@ -74,8 +69,16 @@ class AchievementsMenu extends React.PureComponent {
         this.forceUpdate()
     }
 
+    /** @returns All registered achievements */
+    getAchievements() {
+        return this.props.achievements._achievements
+    }
+
     /** Render UI */
     render() {
+        const achievements = this.getAchievements()
+
+        // Render UI
         return <PanelContainer title='Achievements'>
 
             {/* Information text */}
@@ -85,7 +88,7 @@ class AchievementsMenu extends React.PureComponent {
 
             {/* Achievements */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 35, justifyContent: 'center', alignItems: 'center' }}>
-                { this.achievements.map(achievement => <SingleAchievement key={achievement.id} achievement={achievement} />) }
+                { achievements.map(achievement => <SingleAchievement key={achievement.id} achievement={achievement} />) }
             </div>
 
         </PanelContainer>
@@ -96,7 +99,7 @@ class AchievementsMenu extends React.PureComponent {
 /**
  * Represents a single achievement.
  */
-class SingleAchievement extends React.PureComponent {
+class SingleAchievement extends React.Component {
 
     /** Initial state */
     state = {
