@@ -44,20 +44,13 @@ export default class CustomAchievement extends Achievement {
 
             if (props.progress < 0) props.progress = 0
 
-            let min = 0
-            let max = 0
-            let overallProgress = 0
-            for (let idx = 0; idx < props.thresholds.length; idx++) {
-                min = props.thresholds[idx].min
-                max = props.thresholds[idx].max
-                overallProgress = props.progress + min
-
-                if (overallProgress >= min && overallProgress < max) {
+            for (let idx = props.level; idx < props.thresholds.length; idx++) {
+                if (props.progress < props.thresholds[idx]) {
                     props.level = idx
                     break
                 }
 
-                if (overallProgress >= min && overallProgress === max) {
+                if (props.progress === props.thresholds[idx]) {
                     let canLevelUp = idx + 1 <= props.thresholds.length - 1
                     props.level = canLevelUp ? idx + 1 : idx
                     props.progress = canLevelUp ? 0 : props.progress

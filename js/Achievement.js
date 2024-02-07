@@ -24,9 +24,6 @@ export default class Achievement {
     /** @private Progress in the current achievement level */
     _progress = 0
 
-    /** @private Overall progress throughout all achievement levels */
-    _overallProgress = 0
-
     /** @private Settings applied to this achievement */
     _settings = {}
 
@@ -42,7 +39,7 @@ export default class Achievement {
      * @param {string} settings.id Identifier for this achievement.
      * @param {string[]} settings.names Names for each level of the achievement.
      * @param {string[]} settings.descriptions Descriptions for each level of the achievement.
-     * @param {{ min: number, max: number }[]} settings.thresholds Minimum and maximum values that denote the range of each level. Each minimum value needs to be higher than the maximum of the previous level.
+     * @param {number[]} settings.thresholds Maximum values that denote the end of each level.
      * @param {string[]} settings.images Images for each level of the achievement.
      * @param {number=} settings.level Optional. Current level of the achievement. Default is 0.
      * @param {number=} settings.progress Optional. Current progress of the achievement in the current level. Must be irrespective of the minimum value of the level (e.g. if level is between 100 and 150, progress should be between 0 and 50). Default is 0.
@@ -56,8 +53,7 @@ export default class Achievement {
         this._level = settings.level || 0
         this._progress = settings.progress || 0
         this._colors = settings.colors || DEFAULT_COLORS
-        this._overallProgress = settings.thresholds[this._level].min + this._progress
-        this._hasUnlockedHighest = this._overallProgress >= settings.thresholds[settings.thresholds.length - 1].max
+        this._hasUnlockedHighest = this._progress >= settings.thresholds[settings.thresholds.length - 1]
     }
 
     /** Identifier of the achievement */
@@ -104,7 +100,6 @@ export default class Achievement {
         }
 
         this._level = level
-        this._overallProgress = this._settings.thresholds[this._level].min + this._progress
         this.update(0)
     }
 
@@ -117,23 +112,14 @@ export default class Achievement {
         throw new Error('Not allowed to set achievement progress.')
     }
 
-    /** Overall progress throughout all achievement levels */
-    get overallProgress() {
-        return this._overallProgress
-    }
-
-    set overallProgress(prog) {
-        throw new Error('Not allowed to set overall achievement progress.')
-    }
-
     /** Percentage of progress made in the current achievement level */
     get progressPercent() {
-        return (this._progress / (this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min)) * 100
+        return (this._progress / this._settings.thresholds[this._level]) * 100
     }
 
     /** Maximum amount of progress for this level */
     get progressMax() {
-        return this._settings.thresholds[this._level].max
+        return this._settings.thresholds[this._level]
     }
 
     set progressMax(max) {
@@ -228,14 +214,10 @@ export default class Achievement {
             }
         }
 
-        for (let i = 0; i < settings.thresholds.length; i++) {
-            if (settings.thresholds[i].min == null || settings.thresholds[i].max == null || settings.thresholds[i].min >= settings.thresholds[i].max) {
-                throw new Error('Achievement thresholds must have a minimum and maximum value, and the minimum must be lower than the maximum.')
-            }
-
-            if (i > 0) {
-                if (settings.thresholds[i].min <= settings.thresholds[i - 1].max) {
-                    throw new Error('Achievement thresholds must have a minimum value higher than the maximum of the previous level.')
+        for (let idx = 0; idx < settings.thresholds.length; idx++) {
+            if (idx > 0) {
+                if (settings.thresholds[idx] <= settings.thresholds[idx - 1]) {
+                    throw new Error('Each successive achievement threshold must be greater than the threshold of the previous level.')
                 }
             }
         }
@@ -260,11 +242,8 @@ export default class Achievement {
             }
 
             const level = settings.level != null ? settings.level : 0
-            const min = settings.thresholds[level].min
-            const max = settings.thresholds[level].max
-
-            if (settings.progress + min > max) {
-                throw new Error('Achievement progress must be lower than the maximum value of the current level.')
+            if (settings.progress > settings.thresholds[level]) {
+                throw new Error('Achievement progress must be lower than the threshold of the current level.')
             }
         }
     }
@@ -293,10 +272,9 @@ export default class Achievement {
         }
 
         // Edge case: Progress given is bigger than highest threshold
-        if (progress >= this._settings.thresholds[this._settings.thresholds.length - 1].max) {
+        if (progress >= this._settings.thresholds[this._settings.thresholds.length - 1]) {
             this._level = this._settings.thresholds.length - 1
-            this._progress = this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min
-            this._overallProgress = this._settings.thresholds[this._level].max
+            this._progress = this._settings.thresholds[this._level]
 
             // Prevent achievement spam when progressing after highest level
             if (!this._hasUnlockedHighest) {
@@ -311,12 +289,11 @@ export default class Achievement {
         }
 
         const newProgress = this._progress + progress
-        if (newProgress >= this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min) {
+        if (newProgress >= this._settings.thresholds[this._level]) {
 
             // Already at highest level
             if (this._level + 1 >= this._settings.thresholds.length) {
-                this._progress = this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min
-                this._overallProgress = this._settings.thresholds[this._level].max
+                this._progress = this._settings.thresholds[this._level]
 
                 // Prevent achievement spam when progressing after highest level
                 if (!this._hasUnlockedHighest) {
@@ -336,7 +313,7 @@ export default class Achievement {
             for (let idx = this._level + 1; idx < this._settings.thresholds.length; idx++) {
                 levelsProgressed.push(idx - 1)
 
-                if (newProgress >= this._settings.thresholds[idx].min && newProgress < this._settings.thresholds[idx].max) {
+                if (newProgress < this._settings.thresholds[idx]) {
                     this._level = idx
                     found = true
                     break
@@ -345,8 +322,7 @@ export default class Achievement {
 
             if (found) {
                 // Level up
-                this._progress = Math.max(newProgress - this._settings.thresholds[this._level].min, 0)
-                this._overallProgress = this._settings.thresholds[this._level].min + this._progress
+                this._progress = Math.max(newProgress - this._settings.thresholds[this._level - 1], 0)
                 let offsets = levelsProgressed.map((_, idx) => idx)
 
                 // Send unlocked event for each level unlocked
@@ -366,7 +342,6 @@ export default class Achievement {
 
             // Stay at current level
             this._progress = newProgress
-            this._overallProgress = this._settings.thresholds[this._level].min + this._progress
 
         }
 
@@ -382,10 +357,8 @@ export default class Achievement {
         if (overall) {
             this._level = 0
             this._progress = 0
-            this._overallProgress = 0
         } else {
             this._progress = 0
-            this._overallProgress = this._settings.thresholds[this._level].min
         }
 
         this._hasUnlockedHighest = false
@@ -402,8 +375,7 @@ export default class Achievement {
             thresholds: this._settings.thresholds,
             level: this._level,
             progress: this._progress,
-            progressPercent: (this._progress / (this._settings.thresholds[this._level].max - this._settings.thresholds[this._level].min)) * 100,
-            overallProgress: this._overallProgress,
+            progressPercent: (this._progress / this._settings.thresholds[this._level]) * 100,
             current: {
                 name: this._settings.names[this._level],
                 description: this._settings.descriptions[this._level],

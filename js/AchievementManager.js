@@ -134,7 +134,7 @@ export default class AchievementManager {
 
             // Check each threshold for a change
             for (let tIdx = 0; tIdx < achievement._settings.thresholds.length; tIdx++) {
-                if (settings.thresholds[tIdx].min !== achievement._settings.thresholds[tIdx].min || settings.thresholds[tIdx].max !== achievement._settings.thresholds[tIdx].max) {
+                if (settings.thresholds[tIdx] !== achievement._settings.thresholds[tIdx]) {
                     this._achievements[idx]._settings.thresholds = settings.thresholds
                     hasThresholdChanged = true
                     break
@@ -146,8 +146,8 @@ export default class AchievementManager {
         // We are now in a different threshold bracket
         if (hasThresholdChanged) {
             let newLevel = -1
-            for (let tIdx = 0; tIdx < this._achievements[idx]._settings.thresholds.length; tIdx++) {
-                if (this._achievements[idx]._settings.thresholds[tIdx].min <= this._achievements[idx].overallProgress && this._achievements[idx]._settings.thresholds[tIdx].max >= this._achievements[idx].overallProgress) {
+            for (let tIdx = this._achievements[idx].level; tIdx < this._achievements[idx]._settings.thresholds.length; tIdx++) {
+                if (this._achievements[idx].progress < this._achievements[idx]._settings.thresholds[tIdx]) {
                     newLevel = tIdx
                     break
                 }
@@ -158,7 +158,7 @@ export default class AchievementManager {
                 // Have not found a single range that our current progress fits into,
                 // so we are at the highest level
                 newLevel = this._achievements[idx]._settings.thresholds.length - 1
-                let newProgress = this._achievements[idx]._settings.thresholds[newLevel].max - this._achievements[idx]._settings.thresholds[newLevel].min
+                let newProgress = this._achievements[idx]._settings.thresholds[newLevel]
 
                 this._achievements[idx]._settings.progress = newProgress
                 this._achievements[idx]._settings.level = newLevel

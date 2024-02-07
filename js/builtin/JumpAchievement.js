@@ -13,13 +13,7 @@ export default class JumpAchievement extends Achievement {
         super(Object.assign({
             names: [ 'First Jump', 'Jumping Jack', 'Jumping Jill', 'Jumping Pro', 'Too Much Jumping' ],
             descriptions: [ 'Jump for the first time.', 'Jump 10 times.', 'Jump 100 times.', 'Jump 10 000 times.', 'Jump 100 000 times.' ],
-            thresholds: [
-                { min: 0, max: 1 },
-                { min: 2, max: 10 },
-                { min: 11, max: 100 },
-                { min: 101, max: 10_000 },
-                { min: 10_001, max: 100_000 }
-            ],
+            thresholds: [ 1, 10, 100, 10_000, 100_000 ],
             images: [
                 require('../../images/jump-1.png'),
                 require('../../images/jump-2.png'),
