@@ -57,6 +57,10 @@ export default class MoveAchievement extends Achievement {
 
         // Update movement on a regular basis
         this._updateTimer = setInterval(() => {
+            if (metapress.physics.isLocked) {
+                return
+            }
+
             let x = metapress?.avatars?.currentUserEntity?.x || 0
             let z = metapress?.avatars?.currentUserEntity?.z || 0
 

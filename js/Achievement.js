@@ -236,6 +236,10 @@ export default class Achievement {
         }
 
         for (let idx = 0; idx < settings.thresholds.length; idx++) {
+            if (typeof settings.thresholds[idx] != 'number') {
+                throw new Error('Each achievement threshold must be a number.')
+            }
+
             if (idx > 0) {
                 if (settings.thresholds[idx] <= settings.thresholds[idx - 1]) {
                     throw new Error('Each successive achievement threshold must be greater than the threshold of the previous level.')

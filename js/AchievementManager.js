@@ -511,6 +511,7 @@ export default class AchievementManager {
         if (sepIdx < 0) {
 
             // Hard reset every achievement
+            this.reset('all', true, process.env.SIGN, true)
             localStorage.removeItem('achievements')
 
         } else {
@@ -521,6 +522,8 @@ export default class AchievementManager {
 
             if (ids === 'all') {
 
+                // Hard reset every achievement
+                this.reset('all', true, process.env.SIGN, true)
                 localStorage.removeItem('achievements')
 
             } else {
