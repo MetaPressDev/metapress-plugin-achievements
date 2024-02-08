@@ -24,6 +24,9 @@ export default class Achievement {
     /** @private Progress in the current achievement level */
     _progress = 0
 
+    /** @private Cumulative progress throughout all achievement levels */
+    _cumulativeProgress = 0
+
     /** @private Settings applied to this achievement */
     _settings = {}
 
@@ -110,6 +113,15 @@ export default class Achievement {
 
     set progress(prog) {
         throw new Error('Not allowed to set achievement progress.')
+    }
+
+    /** Cumulative progress made throughout all achievement levels */
+    get cumulativeProgress() {
+        return this._cumulativeProgress
+    }
+
+    set cumulativeProgress(prog) {
+        throw new Error('Not allowed to set achievement cumulative progress.')
     }
 
     /** Percentage of progress made in the current achievement level */
@@ -275,6 +287,7 @@ export default class Achievement {
         if (progress >= this._settings.thresholds[this._settings.thresholds.length - 1]) {
             this._level = this._settings.thresholds.length - 1
             this._progress = this._settings.thresholds[this._level]
+            this._cumulativeProgress = this._settings.thresholds.reduce((a, b) => a + b, 0)
 
             // Prevent achievement spam when progressing after highest level
             if (!this._hasUnlockedHighest) {
@@ -294,6 +307,7 @@ export default class Achievement {
             // Already at highest level
             if (this._level + 1 >= this._settings.thresholds.length) {
                 this._progress = this._settings.thresholds[this._level]
+                this._cumulativeProgress = this._settings.thresholds.reduce((a, b) => a + b, 0)
 
                 // Prevent achievement spam when progressing after highest level
                 if (!this._hasUnlockedHighest) {
@@ -323,9 +337,10 @@ export default class Achievement {
             if (found) {
                 // Level up
                 this._progress = Math.max(newProgress - this._settings.thresholds[this._level - 1], 0)
-                let offsets = levelsProgressed.map((_, idx) => idx)
+                this._cumulativeProgress = this._settings.thresholds.slice(0, this._level).reduce((a, b) => a + b, 0) + this._progress
 
                 // Send unlocked event for each level unlocked
+                let offsets = levelsProgressed.map((_, idx) => idx)
                 for (let idx = 0; idx < levelsProgressed.length; idx++) {
                     let level = levelsProgressed[idx]
                     setTimeout(() => {
@@ -342,6 +357,7 @@ export default class Achievement {
 
             // Stay at current level
             this._progress = newProgress
+            this._cumulativeProgress = this._settings.thresholds.slice(0, this._level).reduce((a, b) => a + b, 0) + newProgress
 
         }
 
@@ -357,8 +373,10 @@ export default class Achievement {
         if (overall) {
             this._level = 0
             this._progress = 0
+            this._cumulativeProgress = 0
         } else {
             this._progress = 0
+            this._cumulativeProgress = this._settings.thresholds.slice(0, this._level).reduce((a, b) => a + b, 0)
         }
 
         this._hasUnlockedHighest = false

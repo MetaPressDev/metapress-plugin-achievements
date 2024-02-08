@@ -146,8 +146,13 @@ export default class AchievementManager {
         // We are now in a different threshold bracket
         if (hasThresholdChanged) {
             let newLevel = -1
-            for (let tIdx = this._achievements[idx].level; tIdx < this._achievements[idx]._settings.thresholds.length; tIdx++) {
-                if (this._achievements[idx].progress < this._achievements[idx]._settings.thresholds[tIdx]) {
+            let cumulative = 0
+            for (let tIdx = 0; tIdx < this._achievements[idx]._settings.thresholds.length; tIdx++) {
+                // Add at the start since this value is how much progress is needed
+                // to go above this level
+                cumulative += this._achievements[idx]._settings.thresholds[tIdx]
+
+                if (this._achievements[idx].cumulativeProgress < cumulative) {
                     newLevel = tIdx
                     break
                 }
@@ -155,14 +160,14 @@ export default class AchievementManager {
 
             if (newLevel === -1) {
 
-                // Have not found a single range that our current progress fits into,
-                // so we are at the highest level
+                // We have completed every level
                 newLevel = this._achievements[idx]._settings.thresholds.length - 1
                 let newProgress = this._achievements[idx]._settings.thresholds[newLevel]
 
                 this._achievements[idx]._settings.progress = newProgress
                 this._achievements[idx]._settings.level = newLevel
                 this._achievements[idx]._progress = newProgress
+                this._achievements[idx]._cumulativeProgress = cumulative
                 this._achievements[idx].level = `${newLevel}:${process.env.SIGN}`
 
             } else if (newLevel !== this._achievements[idx].level) {
