@@ -115,9 +115,35 @@ class SingleAchievement extends React.Component {
     }
 
     /** Renders more information about the current achievement */
-    renderOpen() {
-        return <>
-        </>
+    renderOpen(colors) {
+        const progressWidth = 80
+
+        // Render UI
+        return <div style={{ display: 'flex', flexDirection: 'column', padding: '10px 12px', justifyContent: 'center' }}>
+            {/* Name of achievement level */}
+            <p style={{ display: '-webkit-box', margin: 0, padding: 0, width: 110, maxHeight: 40, flexShrink: 0, fontSize: 12, textShadow: '1px 1px 2px #000000', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                { this.props.achievement.name }
+            </p>
+
+            {/* Description */}
+            <div style={{ display: '-webkit-box', margin: '12px 0 0 0', maxHeight: 28, fontSize: 9, color: '#CFCFCF', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                { this.props.achievement.description }
+            </div>
+
+            <div style={{ display: 'flex', width: '100%', margin: '9px -5px 0 -5px', justifyContent: 'space-between', alignItems: 'center' }}>
+                <img src={this.props.achievement.image} style={{ width: 26, height: 26, flexShrink: 0 }} />
+
+                <div style={{ display: 'flex', position: 'relative', flexShrink: 0, width: progressWidth, height: 12, border: `1px solid ${colors.tertiary}`, borderRadius: 3, alignItems: 'center', overflow: 'hidden' }}>
+                    <div style={{ flexShrink: 0, width: (this.props.achievement.progressPercent / 100) * progressWidth, height: '100%', background: colors.primary, transition: 'width 0.15s ease' }} />
+                </div>
+
+                <img src={this.props.achievement.nextImage} style={{ width: 26, height: 26, flexShrink: 0 }} />
+            </div>
+
+            <div style={{ marginTop: 5, color: '#FFFFFF', fontSize: 10, width: '100%', textAlign: 'center' }}>
+                { this.formatNumber(this.props.achievement.progress) } / { this.formatNumber(this.props.achievement.progressMax) }
+            </div>
+        </div>
     }
 
     /** Renders most important information about achievement */
@@ -125,7 +151,7 @@ class SingleAchievement extends React.Component {
         const contentWidth = 120
 
         // Render UI
-        return <>
+        return <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', alignItems: 'center' }}>
             {/* Icon */}
             <img src={this.props.achievement.image} style={{ position: 'relative', top: 0, width: 70, height: 70, flexShrink: 0 }} />
 
@@ -142,7 +168,7 @@ class SingleAchievement extends React.Component {
                     { this.formatNumber(this.props.achievement.progress) } / { this.formatNumber(this.props.achievement.progressMax) }
                 </div>
             </div>
-        </>
+        </div>
     }
 
     /** Render UI */
@@ -151,7 +177,7 @@ class SingleAchievement extends React.Component {
         const colors = this.props.achievement.colors
 
         // Render UI
-        return <div onClick={e => this.setState({ isOpen: !this.state.isOpen })} style={{ display: 'flex', flexDirection: 'column', position: 'relative', width: 150, height: 150, flexShrink: 0, borderRadius: 8, background: colors.secondary, boxShadow: `0 4px 0 0 ${colors.tertiary}`, alignItems: 'center', overflow: 'hidden', cursor: 'pointer' }}>
+        return <div onClick={e => this.setState({ isOpen: !this.state.isOpen })} style={{ display: 'flex', flexDirection: 'column', position: 'relative', width: 150, height: 150, flexShrink: 0, borderRadius: 8, background: colors.secondary, boxShadow: `0 4px 0 0 ${colors.tertiary}`, overflow: 'hidden', cursor: 'pointer' }}>
 
             {/* Corner piece */}
             <div style={{ position: 'absolute', top: -25, right: -25, width: 50, height: 50, flexShrink: 0, background: colors.tertiary, transform: 'rotate(45deg)', boxShadow: '0 0 3px 0 #000000' }}>

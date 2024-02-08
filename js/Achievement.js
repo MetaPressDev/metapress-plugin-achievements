@@ -77,6 +77,15 @@ export default class Achievement {
         throw new Error('Not allowed to set achievement name.')
     }
 
+    /** Description of the current achievement level */
+    get description() {
+        return this._settings.descriptions[this._level]
+    }
+
+    set description(desc) {
+        throw new Error('Not allowed to set achievement description.')
+    }
+
     /** Level of the current achievement */
     get level() {
         return this._level
