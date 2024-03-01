@@ -8,10 +8,12 @@ import MoveAchievement from './builtin/MoveAchievement'
 import JumpAchievement from './builtin/JumpAchievement'
 import TimeAchievement from './builtin/TimeAchievement'
 import CustomAchievement from './builtin/CustomAchievement'
+import SiteContentAchievement from './builtin/SiteContentAchievement'
 
 const MOVE_ID = 'move'
 const JUMP_ID = 'jump'
 const TIME_ID = 'time'
+const CONTENT_ID = 'content-click'
 
 /**
  * Manager for all achievements.
@@ -29,10 +31,11 @@ export default class AchievementManager {
         new MoveAchievement({ id: MOVE_ID }),
         new JumpAchievement({ id: JUMP_ID }),
         new TimeAchievement({ id: TIME_ID }),
+        new SiteContentAchievement({ id: CONTENT_ID })
     ]
 
     /** @private Identifiers of every internal achievement. */
-    _internalAchievementIds = [ MOVE_ID, JUMP_ID, TIME_ID ]
+    _internalAchievementIds = [ MOVE_ID, JUMP_ID, TIME_ID, CONTENT_ID ]
 
     /**
      * @private List of external achievements, registered by other plugins.
@@ -461,6 +464,13 @@ export default class AchievementManager {
                         achievement = new TimeAchievement({
                             ...raw._settings,
                             id: TIME_ID,
+                            progress: raw._progress,
+                            level: raw._level
+                        })
+                    } else if (raw._id === CONTENT_ID) {
+                        achievement = new SiteContentAchievement({
+                            ...raw._settings,
+                            id: CONTENT_ID,
                             progress: raw._progress,
                             level: raw._level
                         })
