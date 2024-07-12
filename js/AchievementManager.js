@@ -171,14 +171,14 @@ export default class AchievementManager {
                 this._achievements[idx]._settings.level = newLevel
                 this._achievements[idx]._progress = newProgress
                 this._achievements[idx]._cumulativeProgress = cumulative
-                this._achievements[idx].level = `${newLevel}:${process.env.SIGN}`
+                this._achievements[idx].level = `${newLevel}`
 
             } else if (newLevel !== this._achievements[idx].level) {
 
                 // Need to update level
                 this._achievements[idx]._settings.progress = this._achievements[idx].progress
                 this._achievements[idx]._settings.level = newLevel
-                this._achievements[idx].level = `${newLevel}:${process.env.SIGN}`
+                this._achievements[idx].level = `${newLevel}`
 
             }
         }
@@ -245,7 +245,7 @@ export default class AchievementManager {
 
     /** Called when an achievement has been unlocked */
     onAchievementUnlocked = data => {
-        if (data?.sign && data.sign === process.env.SIGN) {
+        if (data) {
             this.save()
         }
     }
@@ -315,19 +315,13 @@ export default class AchievementManager {
      * @param {string} id Identifier of the achievement to update.
      * @param {number} progress Progress amount to increase achievement by.
      */
-    update = (id, progress, sign = '') => {
+    update = (id, progress) => {
         if (id == null || typeof id != 'string' || id.length < 1) {
             throw new Error('Achievement identifier must be provided.')
         }
 
         if (progress == null || typeof progress != 'number' || progress < 0) {
             throw new Error('Achievement progress must be a positive number.')
-        }
-
-        // Prevent unauthorized changes to internal achievements
-        if (this._internalAchievementIds.includes(id) && (!sign || sign != process.env.SIGN)) {
-            console.warn('[Achievements] Attempted to update an internal achievement without proper authorization.')
-            return
         }
 
         let hasUpdated = false
@@ -379,15 +373,9 @@ export default class AchievementManager {
      * @param {string} id Identifier of the achievement to reset.
      * @param {boolean} overall `true` if the entire achievement should be reset, `false` if only the current level should be reset.
      */
-    reset(id, overall = false, sign = '', preventSave = false) {
+    reset(id, overall = false, preventSave = false) {
         if (!id) {
             throw new Error('Achievement identifier must be provided.')
-        }
-
-        // Prevent unauthorized changes to internal achievements
-        if ((id === 'all' || this._internalAchievementIds.includes(id)) && (!sign || sign != process.env.SIGN)) {
-            console.warn('[Achievements] Attempted to reset an internal achievement without proper authorization.')
-            return
         }
 
         // Reset specific achievement
@@ -415,14 +403,10 @@ export default class AchievementManager {
      * @private Attempts to decrypt the given achievement string.
      * @param {string} str Achievement string to decrypt.
      */
-    _decrypt(str, sign = '') {
-        if (!sign || sign != process.env.SIGN) {
-            throw new Error('Not allowed to decrypt achievements.')
-        }
-
+    _decrypt(str) {
         const encryptedData = str.slice(0, -64) // Remove the last 64 characters (SHA256 hash)
         const checkValue = str.slice(-64)
-        const decryptedString = CryptoJS.AES.decrypt(encryptedData, process.env.SECRET_KEY).toString(CryptoJS.enc.Utf8)
+        const decryptedString = CryptoJS.AES.decrypt(encryptedData, 'achievements').toString(CryptoJS.enc.Utf8)
 
         // Verify check value
         if (checkValue !== CryptoJS.SHA256(decryptedString).toString(CryptoJS.enc.Hex)) {
@@ -438,7 +422,7 @@ export default class AchievementManager {
      */
     load(str) {
         try {
-            const rawAchievements = this._decrypt(str, process.env.SIGN)
+            const rawAchievements = this._decrypt(str)
 
             // Convert to actual achievement instances, since we lose this when serializing
             rawAchievements.forEach(raw => {
@@ -501,7 +485,7 @@ export default class AchievementManager {
     /** @private Performs the achievements saving */
     _performSave() {
         const serialized = JSON.stringify(this._achievements)
-        const encrypted = CryptoJS.AES.encrypt(serialized, process.env.SECRET_KEY).toString()
+        const encrypted = CryptoJS.AES.encrypt(serialized, 'achievements').toString()
         const checkValue = CryptoJS.SHA256(serialized).toString(CryptoJS.enc.Hex)
 
         // Save
@@ -521,7 +505,7 @@ export default class AchievementManager {
         if (sepIdx < 0) {
 
             // Hard reset every achievement
-            this.reset('all', true, process.env.SIGN, true)
+            this.reset('all', true, true)
             localStorage.removeItem('achievements')
 
         } else {
@@ -533,7 +517,7 @@ export default class AchievementManager {
             if (ids === 'all') {
 
                 // Hard reset every achievement
-                this.reset('all', true, process.env.SIGN, true)
+                this.reset('all', true, true)
                 localStorage.removeItem('achievements')
 
             } else {
@@ -543,7 +527,7 @@ export default class AchievementManager {
                 for (let idx = 0; idx < split.length; idx++) {
                     if (!split[idx] || typeof split[idx] != 'string' || split[idx].length < 1) continue
 
-                    this.reset(split[idx], true, process.env.SIGN, true)
+                    this.reset(split[idx], true, true)
                     this._performSave()
                 }
 
@@ -554,16 +538,20 @@ export default class AchievementManager {
 
     /** Saves the current achievements and progress to storage */
     save() {
+        try {
+            // BACKUP: In case of emergency, we can reset all, or specific, achievements
+            const previous = localStorage.getItem('achievements')
+            if (previous != null && typeof previous == 'string' && previous.startsWith('reset')) {
+                this._performReset(previous)
+                return
+            }
 
-        // BACKUP: In case of emergency, we can reset all, or specific, achievements
-        const previous = localStorage.getItem('achievements')
-        if (previous != null && typeof previous == 'string' && previous.startsWith('reset')) {
-            this._performReset(previous)
-            return
+            // Save
+            this._performSave()
+        } catch (error) {
+            console.warn('[Achievements] Failed to save achievements.', error)
         }
 
-        // Save
-        this._performSave()
 
     }
 

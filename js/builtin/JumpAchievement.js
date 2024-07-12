@@ -29,7 +29,7 @@ export default class JumpAchievement extends Achievement {
      * @param {(id: string, progress: number) => void} updateCallback Callback used to update the achievement.
      */
     start(updateCallback) {
-        metapress.plugins.addEventListener('avatar_jump', () => updateCallback(this.id, 1, process.env.SIGN))
+        metapress.plugins.addEventListener('avatar_jump', () => updateCallback(this.id, 1))
     }
 
 }

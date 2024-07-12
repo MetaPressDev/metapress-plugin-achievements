@@ -60,7 +60,7 @@ export default class SiteContentAchievement extends Achievement {
 
             // Send achievement update
             this.clickedContentIds.push(data.id)
-            updateCallback(this.id, 1, process.env.SIGN)
+            updateCallback(this.id, 1)
         }
 
         // Listen for any clicks

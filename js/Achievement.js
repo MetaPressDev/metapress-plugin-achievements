@@ -106,11 +106,6 @@ export default class Achievement {
             throw new Error('Not allowed to set achievement level.')
         }
 
-        const sign = split[1]
-        if (sign != process.env.SIGN) {
-            throw new Error('Not allowed to set achievement level.')
-        }
-
         this._level = level
         this.update(0)
     }
@@ -275,7 +270,7 @@ export default class Achievement {
 
     /** Sends an event when this achievement has been unlocked */
     sendUnlockedEvent(name, description, image) {
-        metapress.plugins.sendEvent('achievement.unlocked', { id: this._id, name, description, image, sign: process.env.SIGN })
+        metapress.plugins.sendEvent('achievement.unlocked', { id: this._id, name, description, image})
         console.debug(`[Achievement] Unlocked "${name}" ${this._settings.thresholds.length > 1 ? toRoman(this._level) : ''} - ${description}`)
     }
 

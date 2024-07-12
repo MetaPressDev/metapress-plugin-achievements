@@ -78,7 +78,7 @@ export default class MoveAchievement extends Achievement {
                 return
             }
 
-            updateCallback(this.id, distance, process.env.SIGN)
+            updateCallback(this.id, distance)
         }, this._timeInterval)
     }
 

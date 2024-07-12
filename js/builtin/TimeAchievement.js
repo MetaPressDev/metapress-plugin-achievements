@@ -40,7 +40,7 @@ export default class TimeAchievement extends Achievement {
 
         // Update time on a regular basis
         this._timeTimer = setInterval(() => {
-            updateCallback(this.id, this._timeInterval, process.env.SIGN)
+            updateCallback(this.id, this._timeInterval)
         }, this._timeInterval)
     }
 

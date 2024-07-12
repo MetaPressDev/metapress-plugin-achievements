@@ -67,7 +67,7 @@ export default class NotificationsUI {
 
     /** Called when an achievement has been unlocked */
     onAchievementUnlocked = data => {
-        if (data?.sign && data.sign === process.env.SIGN) {
+        if (data) {
             this.show(data)
         }
     }
